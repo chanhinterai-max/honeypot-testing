@@ -1,13 +1,9 @@
 import { defineConfig } from "vite";
-import viteReact from "@vitejs/plugin-react";
-import { tanstackStart } from "@tanstack/react-start/plugin/vite";
-import tailwindcss from "@tailwindcss/vite";
+import react from "@vitejs/plugin-react";
 
 export default defineConfig({
-  plugins: [tanstackStart(), viteReact(), tailwindcss()],
-  resolve: {
-    alias: {
-      "@": "/src",
-    },
+  plugins: [react()],
+  build: {
+    outDir: "dist",
   },
 });
