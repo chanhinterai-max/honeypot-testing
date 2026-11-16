@@ -1,0 +1,1 @@
+# Honeypot Testing Site\n\nTanStack Start + Vite + React app with a login gate (Honeypot Testing).\n\nAfter sign-in it shows a portfolio desk view.\n\n## Deploy to Vercel\n\nImport this repository into Vercel (team Peter).\n\n- Build Command: `npm run build`\n- Output Directory: `dist`\n- Install Command: `npm install`\n\nSign in with credentials from `src/lib/site-access.md`.\n
