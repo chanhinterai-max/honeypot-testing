@@ -1,101 +1,141 @@
-import { useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
+import { DeskView } from "./components/desk-view";
+import type { DeskReport } from "./types";
 
 export default function App() {
-  const [unlocked, setUnlocked] = useState(false);
+  const [phase, setPhase] = useState<"boot" | "gate" | "desk">("boot");
+  const [report, setReport] = useState<DeskReport | null>(null);
   const [username, setUsername] = useState("");
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
+  const [pending, setPending] = useState<"lock" | "update" | "sign" | null>(null);
+  const [note, setNote] = useState("");
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (username === "peter" && code === "051203#Interpol") {
-      setUnlocked(true);
-      setError("");
-    } else {
-      setError("Not recognised.");
-    }
+  async function loadReport() {
+    const response = await fetch("/api/portfolio");
+    if (!response.ok) return false;
+    setReport((await response.json()) as DeskReport);
+    setPhase("desk");
+    return true;
   }
 
-  if (!unlocked) {
+  useEffect(() => {
+    loadReport()
+      .catch(() => setPhase("gate"))
+      .then((ok) => {
+        if (ok === false) setPhase("gate");
+      });
+  }, []);
+
+  async function onSubmit(event: FormEvent) {
+    event.preventDefault();
+    setPending("sign");
+    setError("");
+    try {
+      const response = await fetch("/api/session", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ username, code }),
+      });
+      if (!response.ok) {
+        setError("Not recognised.");
+        setPending(null);
+        return;
+      }
+      setCode("");
+      const ok = await loadReport();
+      if (!ok) setError("Not recognised.");
+    } catch {
+      setError("Not recognised.");
+    }
+    setPending(null);
+  }
+
+  async function onUpdate() {
+    setPending("update");
+    setNote("");
+    try {
+      const response = await fetch("/api/portfolio", { method: "POST" });
+      if (!response.ok) {
+        setNote("Update failed.");
+        setPending(null);
+        return;
+      }
+      setReport((await response.json()) as DeskReport);
+    } catch {
+      setNote("Update failed.");
+    }
+    setPending(null);
+  }
+
+  async function onLock() {
+    setPending("lock");
+    await fetch("/api/lock", { method: "POST" });
+    setReport(null);
+    setPhase("gate");
+    setPending(null);
+  }
+
+  if (phase === "boot") {
     return (
-      <div className="min-h-screen bg-black text-gray-100 flex items-center justify-center p-6">
-        <div className="w-full max-w-md">
-          <h1 className="text-4xl font-serif mb-2">Honeypot Testing</h1>
-          <p className="text-gray-400 mb-8">Portfolio desk access</p>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm mb-1">Username</label>
-              <input
-                className="w-full bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-sm"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                autoComplete="username"
-              />
-            </div>
-            <div>
-              <label className="block text-sm mb-1">Password</label>
-              <input
-                type="password"
-                className="w-full bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-sm"
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                autoComplete="current-password"
-              />
-            </div>
-            {error && <p className="text-red-400 text-sm">{error}</p>}
-            <button
-              type="submit"
-              className="w-full bg-amber-700 hover:bg-amber-600 text-white py-2.5 rounded text-sm font-medium"
-            >
-              Sign in
-            </button>
-          </form>
-        </div>
-      </div>
+      <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-5">
+        <p className="text-sm text-muted">Opening the desk…</p>
+      </main>
+    );
+  }
+
+  if (phase === "gate" || !report) {
+    return (
+      <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-5 py-12">
+        <h1 className="font-serif text-4xl font-medium text-fg">Honeypot Testing</h1>
+        <form onSubmit={onSubmit} className="mt-8 flex flex-col gap-3">
+          <label htmlFor="username" className="text-sm text-fg">
+            Username
+          </label>
+          <input
+            id="username"
+            name="username"
+            autoComplete="username"
+            value={username}
+            onChange={(event) => setUsername(event.target.value)}
+            className="h-12 rounded-card border border-line bg-surface px-4 text-base text-fg outline-none focus:border-brass"
+          />
+          <label htmlFor="access-code" className="text-sm text-fg">
+            Password
+          </label>
+          <input
+            id="access-code"
+            name="access-code"
+            type="password"
+            autoComplete="current-password"
+            value={code}
+            onChange={(event) => setCode(event.target.value)}
+            className="h-12 rounded-card border border-line bg-surface px-4 text-base text-fg outline-none focus:border-brass"
+          />
+          {error ? (
+            <p className="text-sm text-down" role="alert">
+              {error}
+            </p>
+          ) : null}
+          <button
+            type="submit"
+            disabled={pending !== null || username.length === 0 || code.length === 0}
+            className="mt-2 inline-flex h-12 items-center justify-center rounded-card bg-brass px-4 text-sm font-semibold text-brass-ink disabled:opacity-50"
+          >
+            {pending === "sign" ? "Checking…" : "Sign in"}
+          </button>
+        </form>
+      </main>
     );
   }
 
   return (
-    <div className="min-h-screen bg-black text-gray-100">
-      <header className="border-b border-zinc-800 px-6 py-4 flex justify-between items-center">
-        <h1 className="text-xl font-serif">Portfolio Desk</h1>
-        <button
-          onClick={() => setUnlocked(false)}
-          className="text-sm text-gray-400 hover:text-white"
-        >
-          Sign out
-        </button>
-      </header>
-      <main className="max-w-5xl mx-auto p-6">
-        <section className="mb-8">
-          <h2 className="text-lg mb-3">Holdings Summary</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="border border-zinc-800 rounded p-4">
-              <p className="text-sm text-gray-400">2388.HK</p>
-              <p className="text-2xl font-medium">~HK$49.60</p>
-              <p className="text-sm text-green-400">+0.3% · MV ~HK$49.6k</p>
-            </div>
-            <div className="border border-zinc-800 rounded p-4">
-              <p className="text-sm text-gray-400">0728.HK</p>
-              <p className="text-2xl font-medium">~HK$4.445</p>
-              <p className="text-sm text-green-400">+0.6% · MV ~HK$26.7k</p>
-            </div>
-          </div>
-          <div className="mt-4 text-sm text-gray-400">
-            Total MV ~HK$76.3k · Remaining capital ~HK$104k
-          </div>
-        </section>
-
-        <section className="border border-zinc-800 rounded p-4">
-          <h2 className="text-lg mb-2">Notes</h2>
-          <ul className="text-sm space-y-1 text-gray-300 list-disc pl-5">
-            <li>2388.HK: 9M profit +9% YoY, dividend ex 12 Nov</li>
-            <li>0728.HK: 9M profit -14.8% YoY (VAT drag), AI resilience, yield ~6.5%</li>
-            <li>HSI recent range ~23,600–24,800</li>
-            <li>00101.HK still near 52-week low (Income/Defensive candidate)</li>
-          </ul>
-        </section>
-      </main>
-    </div>
+    <DeskView
+      report={report}
+      onLock={onLock}
+      onUpdate={onUpdate}
+      pending={pending === "sign" ? null : pending}
+      note={note}
+    />
   );
 }
