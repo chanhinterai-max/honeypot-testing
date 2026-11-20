@@ -47,6 +47,25 @@ const BOOK = [
     subSymbol: "^HSNU",
     subName: "Hang Seng Utilities Classification",
   },
+  {
+    ticker: "00101.HK",
+    symbol: "0101.HK",
+    name: "Hang Lung Properties",
+    track: "Income / Defensive · real estate",
+    shares: 5000,
+    shareLabel: "5,000",
+    avgCost: 6.671,
+    totalCost: 33355,
+    lots: [{ date: "2026-11-20", shares: 5000, price: 6.24 }],
+    buyBelow: 6.11,
+    sellFrom: 8.0,
+    sellTo: 8.4,
+    thesis:
+      "Active. Income/Defensive real estate. Filled 20 Nov 2026 at 6.24, all-in 6.671. Near the 6-month and 52-week low. Leasing intact; interim dividend held.",
+    adviceNote: "Hold. Add only at or below 6.11. Review a trim only near 8.00–8.40.",
+    subSymbol: "^HSNP",
+    subName: "Hang Seng Properties Classification",
+  },
 ];
 
 function relation(current, compared) {
@@ -288,7 +307,7 @@ export async function pullReport() {
   return {
     asOf: `${stamped} HKT`,
     confidence: "Medium — live daily bars, refreshed on update",
-    capitalLeft: hkd(74283.31),
+    capitalLeft: hkd(70928.31),
     realizedTotal: signedHkd(0),
     realizedRelation: "flat",
     realizedNote: "Accumulated realized result is zero. No sale has been locked.",
